@@ -1,0 +1,126 @@
+Presentation 1.
+
+1)
+Det finns flertalet definitioner av maskininlärning men jag skulle definiera det som 
+"Maskininlärning är ett område där en dator löser en uppgift. Inte genom att gå igenom steg för steg utifrån vad den blivit programmerad att göra, utan ifrån vad den har lärt sig sen tidigare."
+Det är i alla fall det jag förklarade för min tjej som frågade vad jag höll och plugga. Och det verkade ändå gått hem litegrann. 
+
+2)
+Ett regressionsproblem är ett problem som kan lösas med en formel, alltså t.ex. lönen hos folk är beroende på dess erfarenhet. 
+
+3)
+Klassificeringsproblem kännetecknas av att man helt enkelt vill klassificera något. Man har en mängd data och vill sedan lägga in den i olika grupper. Med bilder på maträtter så kan klassificeringen vara att lägga respektive bild i pizza, kött, sallad.
+
+4)
+Y är beroende variabeln, alltså resultatet av den är från andra variabler. X är en inputvariabel (oberoende) som varierar. B är är parametrar som används i modellen och E (epsilon) är en slumpmässig felterm eftersom sambanden inte är helt deterministiska.   
+
+5)
+En modell där regressionsmodellen Y=B0+B1X+E hade kunnat användas är för att modellera inkomst beroendee på år av erfarenhet inom ett visst yrke. Den motsvarar räta linjens ekvation vilket är rimligt i det här fallet då eftersom man kan anta att lönen går upp linjärt med erfarenheten.
+
+6)
+Alla scenarion kan inte beskrivas med ett enkelt linjärt samband som i fråga 5. Det man behöver göra i så fall är att lägga till fler multiplar (oberoende variabler).
+Exempelvis Y=B0+B1X1+B2X2+E.
+
+7)
+Man delar upp data i olika delar för att få en så pass bra modell som möjligt, de olika delarna fyller olika syften. 
+Träningsdata: Det är denna data som används under träningen av modellen då parametrarna ändras (inre parametrar såsom betaparametrar). Detta kan göras genom olika optimeringsmetoder, såsom t.ex. gradient descent.
+
+Valideringsdata: Används för att validera och utvärdera efter träningen. Och då ändras hyperparametrar. Alltså sådant som t.ex. batch-storlek, antalet epoker för träning, antalet lager i modellen. Sedan används ofta träningsdatat igen med de nya hyperparametrarna.
+
+Testdata: Detta är det slutgiltiga testet och är data som inte alls har fått användas under träningen av modellen. 
+
+Generellt kan man se det som detta skolexempel. Träningsdata är matteboken där man gör vanliga uppgifter, vilket är den största delen. Valideringsdata är gamla tentor man gör för att kolla att man lärt sig det som ska kunnas, och justera lärandet. Medan testdata är den slutgiltiga tentan som man inte har sett tidigare. Men om man lärt sig bra så bör man ha generaliserat lärandet så att kunskapen kan appliceras på tentan man skriver.
+
+8)
+Vid användning av K-fold cross validation delar man upp data i träningsdel och testdel. Då kommer valideringsdelen att vara en del av träningsdelen.
+Testdelen låter man vara.
+Sedan gör man träningsdelen i slumpmässig ordning.  
+T.ex. delar vi nu in träningsdatan i 5 delar. 
+Sedan tränar man modellen på del 2-5 och validerar på 1 och tar ut MSE1 (Mean Square Error 1, vilket är måttet på felet vid första iterationen).
+Därefter tränar man på del 1, 3-5 och validerar på 2, tar ut MSE2.
+Därefter tränar man på del 1-2, 4-5 och validerar på 3 och så vidare, tar ut MSE 3. 
+
+Alla dessa MSE läggs ihop och man tar medelvärdet av dem. 
+Detta innebär alltså att om man delar upp träningsdatat i K delar, så måste modellen att tränas K gånger, vilket kan vara väldigt tidskrävande vid stora modeller, vilket är en nackdel.
+
+
+
+Presentation 2.
+
+1)
+Klassificeringsmodeller används för att dela in data i olika kategorier. Ett exempel är att man har en massa bilder på människor och ska dela in i man eller kvinna. 
+Då låter man en klassificeringsmodell göra detta då man är antingen eller (även fast det jue är en lite kontroversiell "åsikt" att ha i dagens samhälle ;) ), detta är en binär klassificering då det bara finns två alternativ.
+En annan klassificeringsmodell är multipel klasssificering och det är när det finns fler grupper, som t.ex. olika maträtter och sedan ska de läggas in i olika katergorier.
+
+2. Det som visas i confusion matrixen är:
+När det faktiska värdet är nej så säger modellen rätt 50 av gångerna och ja 10 av gångerna. När det är ja så säger modellen ja 100 gånger och nej 5 gånger.
+Totalt finns det 165 värdenoch det är alltså diagonalen vänster till höger (uppifrån ner) som är de rätta svaren. Alltså 50+100=150 rätt och 5+10=15 fel.
+150/165=0.91/91% noggrannhet har denna klassificeringsmodell.
+
+3)
+Precision är ett koncept som är relaterad till confustion matrixen. Vilket besvarar andelen av de positiva prediktionen som faktiskt är korrekta. 
+Alltså precision=(true positive)/((true positive) + (true false positive).
+Ett högre värde är bättre.
+
+4) 
+Recall är då man tar andelen av de positiva klassen som predikteras korrekt. Alltså recall=(true positive)/((true positive) + (false negative)).
+
+Jag tyckte detta med precision och recall var svårt att förstå så jag tittade på en video som förklarade det väldigt tydligt. Så för att jag själv ska förstå tänker jag skriva ner exemplet (https://www.youtube.com/watch?v=qWfzIYCvBqo):
+
+Jag ska göra en modell som klassificerar mellan äpplen och apelsiner. 3 st äpplen och 7 apelsiner. Modellens resultat:
+
+KLASSIFICERAD ÄPPLE   |   KLASSIFICERAD APELSIN
+      A A             |    A A A A A
+       Ä Ä            |    Ä
+
+A är apelsin och Ä är äpplen. Om noggranhet används, vilket kan verka logiskt så skulle det vara såhär: 
+(antalet korrekta) / (totalen). I det här fallet har vi antelet korrekta 7. 7/(7+10)=70%. Alltså har modellen 70% noggranhet, toppen det var ju bra!
+Detta fungerar hyffsat bra då antalet av varje klass är lika eller någorlunda lika. Men vad händer om vi har 1000 äpplen och 10 appelsiner. 
+Jag bestämmer att min modell klassar allting som äpplen.
+Då blir accuracy: (antalet korrekta) / (totalen) = 1000/1010=99% noggranhet! Wow! Detta är ju en extremt bra modell om vi nu tittar på noggranhet.
+Men det blir självklart när man ser på resultatet att detta inte är en särskilt bra modell.
+
+Därför använder man precision och recall, de de tar hänsyn till hur många av olika klasserna som finns.
+Recall apelsiner är exempel hur många apelsiner är rätt sett till alla de totala apelsinerna (alltså recALL som minnesregel).
+Ta det överdrivna exemplet ovan. (antal korrekta apelsiner) / ((antal korrekta apelsiner) + (antalet icke korrekta apelsiner) ) = 0/10=0% noggranhet. Vilket är mer rimligt.
+
+Precision blir istället att man bara tittar på apelsinsidan, alltså precision=(antalet korrekta apelsiner)/((antalet korrekta apelsiner)+(antalet fel predikterade äpplen)).
+
+5/6)
+Binära klassificierare kan användas för att klassificera mellan flera olika typer (mer än två) genom OvO (one versues one) and OvR (one versues rest).
+OvO:
+Man tränar en binär klassificerare för varje par. Exempelvis om man vill klassificera mellan 1, 2, 3 och 4 så gör man dessa binära klassificerare:
+(1,2), (1,3), (1,4), (2,3), (2,4), (3,4)
+Sedan kör man modellerna för varje siffra. Så om vi exempelvis har en bild på siffran två. Då kan resultatet se ut såhär.
+Modell1: 2
+Modell2: 1
+Modell3: 1
+Modell4: 2
+Modell5: 2
+Modell6: 3
+Här ser vi att tvåan är den som klassificerades flest gånger. Då är det alltså en tvåa som är slutmodellens prediktion, vilket är korrekt.
+
+OvR:
+Detta är att man istället gör en modell för varje siffra.
+Alltså modell1 predikterar om det är en 1a eller inte.
+modell2 predikterar 2a eller inte,
+modell3 predikterar 3a eller inte,
+modell4 predikterar 4a eller inte.
+
+Då blir förmodligen resultatet såhär (jag säger förmodligen eftersom det aldrig går att veta säkert, men statistiskt sätt på en bra tränad modell):
+modell1: Nej
+modell2: ja
+modell3: nej
+modell4: nej
+Här är det bara modell2 som sagt ja och därför är slutresultatet att det är en tvåa in i modellen. Vilket är korrekt. 
+
+Alltså resulterade OvR i samma antalet modeller som antalet klasser, vilket blir positivt då det är stort antal klasser då OvO växer kvadratiskt med antalet klasser. 
+
+7)
+Detta innebär att man kan ta ut flera egenskaper samtidigt. Alltså att man kan ta ut vilken siffra som det är, om den är skriven i dator eller handskriven samt vilken färg.
+
+
+
+
+
+
