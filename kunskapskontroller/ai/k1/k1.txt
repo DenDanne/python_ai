@@ -121,6 +121,102 @@ Detta innebär att man kan ta ut flera egenskaper samtidigt. Alltså att man kan
 
 
 
+Presentation 3.
+
+1)
+Första summan: 1
+Andra summan: (1-4)^2 + (2-4)^2 + (3-4)^2 
+
+2)
+RMSE (root mean squared error) är ett mått som går ut på att man först tar skillnaden mellan det faktiska värdet yi och det predikterade värdet yi^. Sedan kvadrerar man detta för att få bort negativ påverkan. Man tar summan av alla antalet prediktioner och sedan medelvärdet av dem. Sedan tar man roten ur eftersom det tidigare gjordes kvadrat. 
+
+Detta innebär att vi får medelvärdet av felen mellan riktiga och predikterade för hela serien med n värden. Man vill ha ett värde så nära 0 som möjligt.
+
+3) 
+De okända fixa betaparametrarna B0, B1, ..., Bp skattas genom en metod som kallas Gradient Descent. Man vill att MSE ska vara så liten som möjligt. Därför ändrar man betaparametrarna för att få MSE att minska.
+Det finns tre olika varianter av gradient descent. 
+1. Batch Gradient Descent är att man använder hela träningsdatan för varje iteration. Detta kan dock vara mycket långsamt om man har mycket data och risken är att man hamnar i ett lokalt minimum för MSE.
+
+2.  Stochastic Gradient Descent är att man väljer slumpmässigt en observation i taget. Vilket är mycket snabbare och mer kraftiga ändringar av betaparametrarna för varje gång. Här finns en sannolikhet att ta sig ur ett lokalt minimum. 
+
+3. Mini batch Gradient Descent är en kombination av Batch Gradient Descent och Stochastic Gradient Descent. Alltså man väljer slumpmässigt mindre batcher. 
+
+4)
+MSE används istället för RMSE för att MSE kommer att förstärka större fel, alltså ger större fel också en större påverkan på betaparametrarna. Detta för att man kvadrerar felen men gör inte roten ur senare. 
+
+5)
+Gradient Descent är som jag beskrivit ovan att man ändrar betaparametrarna för att uppnå ett minimum hos MSE.
+
+6) 
+Parameter är en del av modellen som beskriver förhållandet mellan oberoende och beroende variabler.
+Hyperparameter är en parameter som används för att bestämma hur en modell ska tränas. Det kan vara antalet epoker, batchstorlek eller hur modellen ska se ut.
+I scikit learn kallas det model parameter och hyperparameter.
+
+7) 
+Bias: Det uppstår när man har en felaktig modell för den datan man har. T.ex. att man använder en rät linjär regression när datat är kvadratiskt.
+Variance: Det är något som mäter hur mycket modellens prediktering förändras med ny data fast med samma fördelning. En hög varians är en överanpassad modell.
+
+Bias Variance Tradeoff är att man de går motsatt till varandra, så har man en hög bias men låg variance  så kan modellen vara underanpassad.
+Är det istället hög variance och låg bias är den överanpassad.
+
+8)
+En mer komplex modell kommer att ge högre varians och kan därför innebära en överanpassning till träningsdatan. 
+
+9)
+Man vill ha en regularisering för att begränsa modellen så att den t.ex. inte överanpassar datan. Det leder till högre bias men lägre varians. 
+
+Ridge regression är att man lägger till en extra del (ett straff) till kostnadsfunktionen, som man då också måste försöka minimera. 
+
+Lasso regression är en typ som gör att oviktiga parametrar sätts till 0 vilket då gör det tydligt vilka som faktiskt ska påverka modellen.
+
+Elastiv Net är en blandning av de två ovan. Alltså man har ett extra straff och får till stor del bort oviktiga variabler.
+
+
+10/11)
+Eftersom det egentligen är en logaritmisk klassicierare och inte något som visar ett samband. Den varierar mellan 0 och 1. Så 0.5 går gränsen för ena
+klassen och över blir det andra klassen. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
