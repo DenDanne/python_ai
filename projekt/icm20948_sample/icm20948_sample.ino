@@ -63,8 +63,8 @@ void setup()
   sampleRate.a = 19;  // 50Hz for Accelerometer (SRD = 19)
   sampleRate.g = 19;  // 50Hz for Gyroscope (SRD = 19)
 
-  fullScale.a = 2; // 3 corresponds to ±16g for the accelerometer
-  fullScale.g = 2; // 3 corresponds to ±2000°/s for the gyroscope
+  fullScale.a = 2; // 2 corresponds to ±8g for the accelerometer
+  fullScale.g = 2; // 2 corresponds to ±1000°/s for the gyroscope
 
   // Set sample rates to 50Hz
   myICM.setSampleRate(ICM_20948_Internal_Acc, sampleRate);
@@ -133,27 +133,48 @@ void printFormattedFloat(float val, uint8_t leading, uint8_t decimals)
   }
 }
 
+void scale_value(ICM_20948_I2C *sensor, float &accX, float &accY, float &accZ, float &gyrX, float &gyrY, float &gyrZ)
+{
+    // Read raw sensor values
+    accX = sensor->accX() / 8000.0;
+    accY = sensor->accY() / 8000.0;
+    accZ = sensor->accZ() / 8000.0;
+
+    gyrX = sensor->gyrX() / 1000.0;
+    gyrY = sensor->gyrY() / 1000.0;
+    gyrZ = sensor->gyrZ() / 1000.0;
+}
+
+void printFormatFloat(float val, uint8_t decimals)
+{
+    if (val < 0)
+    {
+        SERIAL_PORT.print("-");
+        val = -val;  // Convert to positive for formatting
+    }
+    SERIAL_PORT.print(val, decimals);  // Print without leading zeros
+}
+
 
 void printScaledAGMT(ICM_20948_I2C *sensor)
 {
-  static int i = 0;
-  printFormattedFloat(sensor->accX(), 5, 2);
-  SERIAL_PORT.print(" ");
-  printFormattedFloat(sensor->accY(), 5, 2);
-  SERIAL_PORT.print(" ");
-  printFormattedFloat(sensor->accZ(), 5, 2);
-  SERIAL_PORT.print(" ");
-  printFormattedFloat(sensor->gyrX(), 5, 2);
-  SERIAL_PORT.print(" ");
-  printFormattedFloat(sensor->gyrY(), 5, 2);
-  SERIAL_PORT.print(" ");
-  printFormattedFloat(sensor->gyrZ(), 5, 2);
-  SERIAL_PORT.println();
 
-  if(i % 100 == 0){
+    float accX, accY, accZ, gyrX, gyrY, gyrZ;
+
+    // Scale sensor values
+    scale_value(sensor, accX, accY, accZ, gyrX, gyrY, gyrZ);
+    printFormatFloat(accX, 3);
+    SERIAL_PORT.print(" ");
+    printFormatFloat(accY, 3);
+    SERIAL_PORT.print(" ");
+    printFormatFloat(accZ, 3);
+    SERIAL_PORT.print(" ");
+    printFormatFloat(gyrX, 3);
+    SERIAL_PORT.print(" ");
+    printFormatFloat(gyrY, 3);
+    SERIAL_PORT.print(" ");
+    printFormatFloat(gyrZ, 3);
     SERIAL_PORT.println();
-    i = 0;
-  }
-  i++;
 
 }
+
