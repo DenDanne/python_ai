@@ -17,15 +17,34 @@ const char *SERVER_URL = "http://192.168.0.106:5000/api/data";
 // Function to connect to WiFi
 void connectWiFi()
 {
-    Serial.print("Connecting to WiFi...");
+    Serial.println("Disconnecting from WiFi...");
+    WiFi.disconnect(true);
+    delay(1000);
+
+    Serial.println("Connecting to WiFi...");
     WiFi.begin(WIFI_SSID, WIFI_PASS);
-    while (WiFi.status() != WL_CONNECTED)
+
+    int attempts = 0;
+    while (WiFi.status() != WL_CONNECTED && attempts < 30) // 15 seconds timeout
     {
         delay(500);
         Serial.print(".");
+        attempts++;
+        digitalWrite(LED_PIN, 0); 
     }
-    Serial.println("Connected to WiFi!");
+
+    if (WiFi.status() == WL_CONNECTED)
+    {
+        digitalWrite(LED_PIN, 1); 
+        Serial.println("\nConnected to WiFi!");
+    }
+    else
+    {
+        Serial.println("\nFailed to connect to WiFi. Restarting...");
+        ESP.restart();
+    }
 }
+
 
 WiFiClient client;  // Global client object
 HTTPClient http;
@@ -56,9 +75,9 @@ void sendHTTPDataFaster(float *full_sample, int size)
 {
     if (WiFi.status() != WL_CONNECTED)
     {
+        digitalWrite(LED_PIN, 0); 
         Serial.println("WiFi not connected! Reconnecting...");
         connectWiFi();
-        digitalWrite(LED_PIN, 0); 
         return;
     }
 
@@ -81,15 +100,16 @@ void sendHTTPDataFaster(float *full_sample, int size)
     if (httpResponseCode > 0)
     {
     //    Serial.print("HTTP Response: ");
-        Serial.println(httpResponseCode);
+       // Serial.println(httpResponseCode);
+        digitalWrite(LED_PIN, 1); 
     }
     else
-    {
+    {   
+       digitalWrite(LED_PIN, 0); 
         Serial.print("HTTP Error: ");
         Serial.println(httpResponseCode);
     }
 
-    digitalWrite(LED_PIN, 1); 
     //digitalWrite(LED_PIN, !digitalRead(LED_PIN));
 
     http.end();  // Keep connection open

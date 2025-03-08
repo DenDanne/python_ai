@@ -58,6 +58,8 @@ void printPredictionResult(void)
 
 void setup()
 {
+  delay(2000);
+
   pinMode(LED_PIN, OUTPUT);
 
   SERIAL_PORT.begin(460800);
@@ -263,32 +265,9 @@ void printScaledAGMT(ICM_20948_I2C *sensor)
       memcpy(&full_sample[5*SIZE_BATCH], gyrz_save, SIZE_BATCH * sizeof(float));
       i = 0;
 
-     //check_print();
-     // test_mqtt();
      sendHTTPDataFaster(full_sample, 6*SIZE_BATCH);
      printPredictionResult();
-     Serial.println(millis() / 1000);
+     //Serial.println(millis() / 1000);
     }
-
-    // Send immediately via HTTP
-   // char httpPayload[100];  // Buffer for HTTP request data
-   // snprintf(httpPayload, sizeof(httpPayload), "%.3f %.3f %.3f %.3f %.3f %.3f",
-   //          accX, accY, accZ, gyrX, gyrY, gyrZ);
-
-   // sendHTTP(httpPayload);  // Function to send data to HTTP
-
-   /* printFormatFloat(accX, 3);
-    SERIAL_PORT.print(" ");
-    printFormatFloat(accY, 3);
-    SERIAL_PORT.print(" ");
-    printFormatFloat(accZ, 3);
-    SERIAL_PORT.print(" ");
-    printFormatFloat(gyrX, 3);
-    SERIAL_PORT.print(" ");
-    printFormatFloat(gyrY, 3);
-    SERIAL_PORT.print(" ");
-    printFormatFloat(gyrZ, 3);
-    SERIAL_PORT.println();*/
-
 }
 

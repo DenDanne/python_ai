@@ -19,18 +19,6 @@ WiFiClient client;
 Adafruit_MQTT_Client mqtt(&client, MQTT_SERVER, MQTT_PORT);
 Adafruit_MQTT_Publish projekt_pub = Adafruit_MQTT_Publish(&mqtt, MQTT_TOPIC);
 
-// Function to connect to WiFi
-void connectWiFi()
-{
-    Serial.print("Connecting to WiFi...");
-    WiFi.begin(WIFI_SSID, WIFI_PASS);
-    while (WiFi.status() != WL_CONNECTED)
-    {
-        delay(500);
-        Serial.print(".");
-    }
-    Serial.println("Connected!");
-}
 
 // Function to connect to MQTT broker with retries
 void connectMQTT()
