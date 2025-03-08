@@ -1,42 +1,26 @@
-/****************************************************************
- * Example1_Basics.ino
- * ICM 20948 Arduino Library Demo
- * Use the default configuration to stream 9-axis IMU data
- * Owen Lyke @ SparkFun Electronics
- * Original Creation Date: April 17 2019
- *
- * Please see License.md for the license information.
- *
- * Distributed as-is; no warranty is given.
- ***************************************************************/
-#include "ICM_20948.h" // Click here to get the library: http://librarymanager/All#SparkFun_ICM_20948_IMU
+#include "ICM_20948.h" 
 #include "string.h"
-#include "model_randomForestClassifier.h"
-//#define USE_SPI       // Uncomment this to use SPI
+#include "model_randomForestClassifier2.h"
+#include <WiFi.h> // Required for ESP32
+#include "Adafruit_MQTT.h"
+#include "Adafruit_MQTT_Client.h"
+//#include "mqtt_handling.h"
+#include "http_handling.h"
+
 
 #define SERIAL_PORT Serial
-
-#define SPI_PORT SPI // Your desired SPI port.       Used only when "USE_SPI" is defined
-#define CS_PIN 2     // Which pin you connect CS to. Used only when "USE_SPI" is defined
-
-#define WIRE_PORT Wire // Your desired Wire port.      Used when "USE_SPI" is not defined
-// The value of the last bit of the I2C address.
-// On the SparkFun 9DoF IMU breakout the default is 1, and when the ADR jumper is closed the value becomes 0
+#define SPI_PORT SPI 
+#define CS_PIN 2   
+#define WIRE_PORT Wire 
 #define AD0_VAL 1
+#define SIZE_BATCH 100
 
-#ifdef USE_SPI
-ICM_20948_SPI myICM; // If using SPI create an ICM_20948_SPI object
-#else
-ICM_20948_I2C myICM; // Otherwise create an ICM_20948_I2C object
-#endif
+ICM_20948_I2C myICM; 
+Eloquent::ML::Port::RandomForest classifier;
 
 ICM_20948_smplrt_t sampleRate;
 ICM_20948_fss_t fullScale;
 
-
-Eloquent::ML::Port::RandomForest classifier;
-
-#define SIZE_BATCH 100
 float accx_save[SIZE_BATCH];
 float accy_save[SIZE_BATCH];
 float accz_save[SIZE_BATCH];
@@ -45,8 +29,37 @@ float gyry_save[SIZE_BATCH];
 float gyrz_save[SIZE_BATCH];
 float full_sample[6*SIZE_BATCH];
 
+void printPredictionResult(void)
+{
+    // Predict class
+    int prediction = classifier.predict(full_sample);
+
+    switch(prediction){
+      case 0:
+        Serial.println("Predicted class: Circles\n\n");
+        break;
+      case 1:
+        Serial.println("Predicted class: Side to side\n\n");
+        break;      
+      case 2:
+        Serial.println("Predicted class: Up and down\n\n");
+        break;      
+      case 3:
+        Serial.println("Predicted class: Diagonal\n\n");
+        break;
+      case 4:
+        Serial.println("Predicted class: Still\n\n");
+        break;
+      default:
+        Serial.println("WRONG\n\n");
+        break;
+    }
+}
+
 void setup()
 {
+  pinMode(LED_PIN, OUTPUT);
+
   SERIAL_PORT.begin(460800);
   while (!SERIAL_PORT) {}
 
@@ -57,7 +70,6 @@ void setup()
   while (!initialized)
   {
     myICM.begin(WIRE_PORT, AD0_VAL);
-
     SERIAL_PORT.print(F("Initialization of the sensor returned: "));
     SERIAL_PORT.println(myICM.statusString());
 
@@ -70,6 +82,8 @@ void setup()
     {
       initialized = true;
     }
+
+    connectWiFi();
   }
 
   sampleRate.a = 19;  // 50Hz for Accelerometer (SRD = 19)
@@ -90,95 +104,6 @@ void setup()
 
 void loop()
 {
-
- /* while(1)
-  {
-    // Example input data
-    float sample[] = { -0.006, -0.001,  0.002, -0.001, -0.002, -0.004, -0.003,  0.001,
-         0.007,  0.002, -0.003, -0.007, -0.001,  0.001,  0.005,  0.004,
-         0.002, -0.008, -0.011, -0.01 , -0.013, -0.012, -0.007, -0.006,
-        -0.007, -0.009, -0.005,  0.001,  0.031,  0.009, -0.006, -0.013,
-         0.007,  0.016,  0.006, -0.   , -0.003,  0.008,  0.007,  0.   ,
-         0.006,  0.01 ,  0.004,  0.003, -0.003,  0.023, -0.003, -0.004,
-        -0.011, -0.013, -0.011, -0.01 , -0.005, -0.006, -0.009, -0.011,
-        -0.009, -0.004, -0.009, -0.006,  0.008,  0.019,  0.008, -0.009,
-        -0.002,  0.01 ,  0.016,  0.016,  0.013,  0.006,  0.007,  0.014,
-         0.013,  0.012,  0.007,  0.004, -0.   ,  0.002, -0.001, -0.001,
-        -0.005, -0.01 , -0.009, -0.008, -0.012, -0.008, -0.006,  0.001,
-         0.   , -0.002, -0.005, -0.001,  0.002,  0.005, -0.005, -0.017,
-        -0.019, -0.006, -0.002,  0.001,  0.019,  0.045,  0.022, -0.015,
-        -0.037, -0.036, -0.016, -0.002, -0.011, -0.013, -0.009, -0.003,
-         0.006,  0.001,  0.007, -0.   ,  0.008,  0.   , -0.011, -0.02 ,
-        -0.016, -0.008, -0.005, -0.01 , -0.015, -0.016, -0.014,  0.   ,
-         0.006,  0.01 , -0.006, -0.008,  0.027,  0.038,  0.009, -0.033,
-        -0.036, -0.011, -0.009, -0.013, -0.003,  0.005, -0.002,  0.006,
-         0.011, -0.027, -0.   , -0.003, -0.003, -0.008, -0.012, -0.013,
-        -0.004, -0.013, -0.021, -0.018, -0.004, -0.015, -0.023, -0.01 ,
-         0.038,  0.024, -0.003, -0.018,  0.011,  0.02 ,  0.02 , -0.008,
-        -0.023, -0.022, -0.016, -0.001,  0.002,  0.003, -0.001,  0.001,
-         0.002,  0.004,  0.003,  0.007,  0.008, -0.003, -0.005, -0.01 ,
-        -0.011, -0.007, -0.006,  0.002, -0.004, -0.012, -0.003,  0.019,
-         0.028,  0.016,  0.027,  0.023,  0.01 ,  0.003, -0.003, -0.026,
-         0.156,  0.181,  0.239,  0.273,  0.287,  0.268,  0.238,  0.222,
-         0.221,  0.222,  0.209,  0.173,  0.138,  0.112,  0.085,  0.067,
-         0.052,  0.042,  0.033,  0.021,  0.017,  0.02 ,  0.019,  0.033,
-         0.049,  0.06 ,  0.061,  0.076,  0.092,  0.139,  0.163,  0.175,
-         0.179,  0.219,  0.261,  0.285,  0.267,  0.244,  0.23 ,  0.222,
-         0.212,  0.206,  0.182,  0.155,  0.138,  0.126,  0.09 ,  0.067,
-         0.054,  0.037,  0.029,  0.018,  0.018,  0.032,  0.04 ,  0.046,
-         0.057,  0.066,  0.076,  0.074,  0.106,  0.149,  0.184,  0.183,
-         0.176,  0.197,  0.238,  0.267,  0.275,  0.263,  0.233,  0.21 ,
-         0.203,  0.197,  0.173,  0.148,  0.126,  0.098,  0.074,  0.054,
-         0.045,  0.039,  0.023,  0.018,  0.022,  0.019,  0.023,  0.039,
-         0.059,  0.072,  0.077,  0.093,  0.115,  0.162,  0.185,  0.195,
-         0.211,  0.251,  0.283,  0.285,  0.052,  0.066,  0.077,  0.063,
-         0.03 , -0.007, -0.029, -0.044, -0.051, -0.069, -0.084, -0.102,
-        -0.117, -0.115, -0.113, -0.105, -0.081, -0.055, -0.035, -0.021,
-        -0.012,  0.004,  0.029,  0.054,  0.072,  0.081,  0.076,  0.081,
-         0.082,  0.095,  0.094,  0.078,  0.071,  0.073,  0.077,  0.065,
-         0.026, -0.009, -0.027, -0.042, -0.056, -0.067, -0.08 , -0.1  ,
-        -0.109, -0.114, -0.113, -0.102, -0.08 , -0.064, -0.041, -0.018,
-         0.003,  0.018,  0.043,  0.051,  0.062,  0.068,  0.063,  0.066,
-         0.077,  0.095,  0.097,  0.087,  0.077,  0.065,  0.063,  0.053,
-         0.028, -0.011, -0.046, -0.07 , -0.085, -0.093, -0.1  , -0.109,
-        -0.117, -0.108, -0.105, -0.093, -0.074, -0.047, -0.025, -0.005,
-         0.01 ,  0.033,  0.047,  0.067,  0.087,  0.089,  0.092,  0.092,
-         0.097,  0.089,  0.098,  0.1  ,  0.086,  0.078,  0.059,  0.027,
-         0.009,  0.044,  0.054,  0.041,  0.016, -0.005, -0.004,  0.   ,
-         0.006,  0.001, -0.012, -0.024, -0.019, -0.023, -0.021, -0.02 ,
-        -0.022, -0.021, -0.022, -0.015, -0.01 , -0.004, -0.005, -0.004,
-        -0.012, -0.016, -0.008,  0.004,  0.008,  0.011, -0.005, -0.003,
-         0.024,  0.047,  0.035,  0.011, -0.006, -0.005, -0.002, -0.002,
-        -0.001, -0.008, -0.016, -0.017, -0.014, -0.019, -0.02 , -0.02 ,
-        -0.018, -0.013, -0.005,  0.006,  0.011,  0.008, -0.004, -0.006,
-        -0.012, -0.008, -0.002,  0.001,  0.004,  0.005, -0.017, -0.024,
-        -0.007,  0.036,  0.04 ,  0.02 , -0.002, -0.013, -0.01 ,  0.009,
-         0.015, -0.001, -0.014, -0.018, -0.017, -0.024, -0.021, -0.009,
-        -0.004, -0.01 , -0.009, -0.001,  0.003,  0.004,  0.007,  0.006,
-         0.001, -0.004, -0.003,  0.004,  0.011,  0.008, -0.003, -0.006,
-         0.025,  0.044,  0.026,  0.007, -0.029, -0.009,  0.009,  0.011,
-        -0.003, -0.012, -0.011,  0.004,  0.007, -0.002, -0.012, -0.014,
-        -0.011, -0.001,  0.008,  0.006,  0.012,  0.018,  0.021,  0.012,
-         0.009,  0.008,  0.008,  0.007, -0.009, -0.021, -0.015, -0.01 ,
-        -0.014, -0.013, -0.03 , -0.033, -0.005,  0.026,  0.025,  0.004,
-        -0.018, -0.006,  0.012,  0.005, -0.   ,  0.003,  0.006,  0.006,
-         0.015,  0.021,  0.012,  0.009,  0.015,  0.013,  0.013,  0.01 ,
-         0.011,  0.012,  0.003, -0.009, -0.013, -0.011, -0.022, -0.024,
-        -0.002, -0.009, -0.027, -0.028, -0.018,  0.001,  0.005,  0.004,
-        -0.009, -0.019, -0.011,  0.004,  0.011,  0.011,  0.   , -0.005,
-        -0.001, -0.001,  0.005,  0.014,  0.018,  0.021,  0.019,  0.014,
-         0.01 ,  0.007, -0.   , -0.006, -0.008, -0.015, -0.016, -0.006,
-         0.003, -0.006, -0.012,  0.003,  0.013,  0.01 ,  0.   , -0.015 };
-
-    // Predict class
-    int prediction = classifier.predict(sample);
-
-    Serial.print("Predicted class: ");
-    Serial.println(prediction);
-
-    delay(1000); // Adjust delay as needed
-  }*/
-
   static uint32_t lastTime = 0;  // Stores the last execution time
   const uint32_t interval = 20;  // 50Hz = 20ms per loop
 
@@ -190,6 +115,9 @@ void loop()
     {
       myICM.getAGMT();         // Read sensor data
       printScaledAGMT(&myICM); // Print data
+    }
+    else{
+      Serial.println("Not ");
     }
   }
 }
@@ -312,7 +240,6 @@ void check_print()
 
 void printScaledAGMT(ICM_20948_I2C *sensor)
 {
-
     float accX, accY, accZ, gyrX, gyrY, gyrZ;
 
     // Scale sensor values
@@ -336,11 +263,19 @@ void printScaledAGMT(ICM_20948_I2C *sensor)
       memcpy(&full_sample[5*SIZE_BATCH], gyrz_save, SIZE_BATCH * sizeof(float));
       i = 0;
 
-      check_print();
-
+     //check_print();
+     // test_mqtt();
+     sendHTTPDataFaster(full_sample, 6*SIZE_BATCH);
+     printPredictionResult();
+     Serial.println(millis() / 1000);
     }
 
+    // Send immediately via HTTP
+   // char httpPayload[100];  // Buffer for HTTP request data
+   // snprintf(httpPayload, sizeof(httpPayload), "%.3f %.3f %.3f %.3f %.3f %.3f",
+   //          accX, accY, accZ, gyrX, gyrY, gyrZ);
 
+   // sendHTTP(httpPayload);  // Function to send data to HTTP
 
    /* printFormatFloat(accX, 3);
     SERIAL_PORT.print(" ");
