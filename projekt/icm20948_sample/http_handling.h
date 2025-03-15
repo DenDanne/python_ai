@@ -3,6 +3,7 @@
 
 #include <WiFi.h>
 #include <HTTPClient.h>
+#include <WiFiClientSecure.h>
 #include <ArduinoJson.h>
 
 #define LED_PIN 13
@@ -12,7 +13,8 @@ const char *WIFI_SSID = "dendanne";
 const char *WIFI_PASS = "hej12345";
 
 // Server settings
-const char *SERVER_URL = "http://192.168.0.106:5000/api/data";
+//const char *SERVER_URL = "http://192.168.0.104:5000/api/data";
+const char *SERVER_URL = "https://ed94-193-181-34-101.ngrok-free.app/api/data";
 
 // Function to connect to WiFi
 void connectWiFi()
@@ -21,7 +23,9 @@ void connectWiFi()
     WiFi.disconnect(true);
     delay(1000);
 
-    Serial.println("Connecting to WiFi...");
+    Serial.print("Connecting to WiFi...");
+    Serial.println(SERVER_URL);
+
     WiFi.begin(WIFI_SSID, WIFI_PASS);
 
     int attempts = 0;
@@ -70,7 +74,6 @@ void sendHTTP(const char* payload) {
     http.end();  // Close connection, but keep client open for next request
 }
 
-
 void sendHTTPDataFaster(float *full_sample, int size)
 {
     if (WiFi.status() != WL_CONNECTED)
@@ -81,8 +84,59 @@ void sendHTTPDataFaster(float *full_sample, int size)
         return;
     }
 
+    WiFiClientSecure client; 
+    client.setInsecure();    
+
+    HTTPClient http;  
+
+    http.begin(client, SERVER_URL);
+    http.addHeader("Content-Type", "application/json");
+
+    // Create JSON payload
+    String payload = "[";
+    for (int i = 0; i < size; i++)
+    {
+        payload += String(full_sample[i], 3);
+        if (i < size - 1) payload += ",";
+    }
+    payload += "]";
+
+    Serial.println("Sending JSON: " + payload);
+
+    int httpResponseCode = http.POST(payload);
+
+    if (httpResponseCode > 0) 
+    {
+        Serial.print("HTTP Response code: ");
+        Serial.println(httpResponseCode);
+        String response = http.getString();
+        Serial.println("Server Response: " + response);
+        digitalWrite(LED_PIN, 1); 
+    } 
+    else 
+    {
+        Serial.print("HTTP Request failed. Error: ");
+        Serial.println(httpResponseCode);
+    }
+
+    http.end();
+}
+
+
+/*void sendHTTPDataFaster(float *full_sample, int size)
+{
+    if (WiFi.status() != WL_CONNECTED)
+    {
+        digitalWrite(LED_PIN, 0); 
+        Serial.println("WiFi not connected! Reconnecting...");
+        connectWiFi();
+        return;
+    }
+
    // HTTPClient http;
-    http.begin(client, "http://192.168.0.106:5000/api/data");  // Reuse connection
+    client.setInsecure();
+
+    http.begin(client, SERVER_URL);  // Reuse connection
     http.addHeader("Content-Type", "application/json");
 
     // Create JSON payload
@@ -97,23 +151,23 @@ void sendHTTPDataFaster(float *full_sample, int size)
    // Serial.println("Sending data...");
     int httpResponseCode = http.POST(payload);
 
-    if (httpResponseCode > 0)
-    {
-    //    Serial.print("HTTP Response: ");
-       // Serial.println(httpResponseCode);
+    if (httpResponseCode > 0) {
+        Serial.print("HTTP Response code: ");
+        Serial.println(httpResponseCode);
+        String response = http.getString();
+        Serial.println(response);
         digitalWrite(LED_PIN, 1); 
-    }
-    else
-    {   
-       digitalWrite(LED_PIN, 0); 
-        Serial.print("HTTP Error: ");
+    } 
+    else 
+    {
+        Serial.print("HTTP Request failed. Error: ");
         Serial.println(httpResponseCode);
     }
 
     //digitalWrite(LED_PIN, !digitalRead(LED_PIN));
 
     http.end();  // Keep connection open
-}
+}*/
 
 // Function to send sensor data via HTTP
 bool sendHTTPData(float *full_sample, int size)
@@ -168,7 +222,7 @@ void test_http()
     }
 
   //  HTTPClient http;
-    http.begin("http://192.168.0.106:5000/api/data");  // Replace with your server IP
+    http.begin(SERVER_URL);  // Replace with your server IP
     http.addHeader("Content-Type", "application/json");
 
     // Test message

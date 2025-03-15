@@ -13,7 +13,7 @@
 #define CS_PIN 2   
 #define WIRE_PORT Wire 
 #define AD0_VAL 1
-#define SIZE_BATCH 100
+#define SIZE_BATCH 150 // 3 Seconds at 50 Hz
 
 ICM_20948_I2C myICM; 
 Eloquent::ML::Port::RandomForest classifier;
@@ -266,7 +266,7 @@ void printScaledAGMT(ICM_20948_I2C *sensor)
       i = 0;
 
      sendHTTPDataFaster(full_sample, 6*SIZE_BATCH);
-     printPredictionResult();
+    // printPredictionResult();
      //Serial.println(millis() / 1000);
     }
 }
