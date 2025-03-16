@@ -8,13 +8,16 @@
 
 #define LED_PIN 13
 
+
+String pred;
+
 // WiFi credentials
 const char *WIFI_SSID = "dendanne";
 const char *WIFI_PASS = "hej12345";
 
 // Server settings
 //const char *SERVER_URL = "http://192.168.0.104:5000/api/data";
-const char *SERVER_URL = "https://ed94-193-181-34-101.ngrok-free.app/api/data";
+const char *SERVER_URL = "http://277b-193-181-34-101.ngrok-free.app/api/data";
 
 // Function to connect to WiFi
 void connectWiFi()
@@ -211,6 +214,10 @@ bool sendHTTPData(float *full_sample, int size)
     }
 }
 
+#include <WiFi.h>
+#include <WiFiClientSecure.h>
+#include <HTTPClient.h>
+
 void test_http()
 {
     Serial.println("Sending test HTTP message...");
@@ -221,19 +228,36 @@ void test_http()
         connectWiFi();
     }
 
-  //  HTTPClient http;
-    http.begin(SERVER_URL);  // Replace with your server IP
+    WiFiClientSecure client; 
+    client.setInsecure();   
+
+    HTTPClient http; 
+    http.begin(client, SERVER_URL);  
+
     http.addHeader("Content-Type", "application/json");
+    String prediction;
 
-    // Test message
-    String payload = "[1.23, 4.56, 7.89]";
+    static int i = 0;
+    if(i%2)
+    {
+      prediction = "{\"prediction\":\"Stakning (Double Poling)\"}";
+    }
+    else
+    {
+      prediction = "{\"prediction\":\"Diagonal\"}";
+    }
+      i++;
+    Serial.print("Sending: ");
+    Serial.println(prediction);
 
-    int httpResponseCode = http.POST(payload);
+    int httpResponseCode = http.POST(prediction);
 
     if (httpResponseCode > 0)
     {
         Serial.print("HTTP Response code: ");
         Serial.println(httpResponseCode);
+        String response = http.getString();  
+        Serial.println("Server Response: " + response);
     }
     else
     {
@@ -241,8 +265,74 @@ void test_http()
         Serial.println(httpResponseCode);
     }
 
-    http.end();
+    http.end();  
 }
+
+void sendPrediction_http()
+{
+    Serial.print("Sending prediction HTTP message... ");
+    Serial.print(pred);
+    Serial.println(" !");
+
+    // Print WiFi status
+    Serial.print("WiFi Status: ");
+    Serial.println(WiFi.status());
+
+    if (WiFi.status() != WL_CONNECTED)
+    {
+        Serial.println("WiFi not connected! Attempting to reconnect...");
+        connectWiFi();
+        return;
+    }
+
+    // Print RSSI (WiFi signal strength)
+    long rssi = WiFi.RSSI();
+    Serial.print("WiFi Signal Strength (RSSI): ");
+    Serial.print(rssi);
+    Serial.println(" dBm");
+
+    // Use plain WiFiClient for HTTP
+    WiFiClient client;
+    
+    HTTPClient http;
+    
+    Serial.println("Initializing HTTP connection...");
+    if (!http.begin(client, SERVER_URL))
+    {
+        Serial.println("Failed to initialize HTTP connection!");
+        return;
+    }
+
+    http.addHeader("Content-Type", "application/json");
+
+    String prediction = "{\"prediction\":\"" + pred + "\"}";
+    Serial.print("Sending: ");
+    Serial.println(prediction);
+
+    int httpResponseCode = http.POST(prediction);
+
+    if (httpResponseCode > 0)
+    {
+        Serial.print("HTTP Response code: ");
+        Serial.println(httpResponseCode);
+        String response = http.getString();
+        Serial.println("Server Response: " + response);
+    }
+    else
+    {
+        Serial.print("HTTP Request failed: ");
+        Serial.println(httpResponseCode);
+
+        // Additional debugging information
+        Serial.println("Possible reasons for failure:");
+        Serial.println("- WiFi disconnected before sending.");
+        Serial.println("- Server URL is incorrect or not reachable.");
+        Serial.println("- Server is rejecting the request.");
+    }
+
+    http.end();  
+}
+
 
 
 #endif // HTTP_HANDLER_H

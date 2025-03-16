@@ -1,12 +1,11 @@
 #include "ICM_20948.h" 
 #include "string.h"
-#include "model_randomForestClassifier2.h"
-#include <WiFi.h> // Required for ESP32
-#include "Adafruit_MQTT.h"
-#include "Adafruit_MQTT_Client.h"
+#include "model_ski3_randomForestClassifier.h"
+#include <WiFi.h>
+//#include "Adafruit_MQTT.h"
+//#include "Adafruit_MQTT_Client.h"
 //#include "mqtt_handling.h"
 #include "http_handling.h"
-
 
 #define SERIAL_PORT Serial
 #define SPI_PORT SPI 
@@ -14,6 +13,8 @@
 #define WIRE_PORT Wire 
 #define AD0_VAL 1
 #define SIZE_BATCH 150 // 3 Seconds at 50 Hz
+
+#define USE_INTERNET 1
 
 ICM_20948_I2C myICM; 
 Eloquent::ML::Port::RandomForest classifier;
@@ -28,6 +29,73 @@ float gyrx_save[SIZE_BATCH];
 float gyry_save[SIZE_BATCH];
 float gyrz_save[SIZE_BATCH];
 float full_sample[6*SIZE_BATCH];
+/*
+// RemoteXY select connection mode and include library 
+#define REMOTEXY_MODE__ESP32CORE_BLUETOOTH
+#include <BluetoothSerial.h>
+// RemoteXY connection settings 
+#define REMOTEXY_BLUETOOTH_NAME "RemoteXY"
+#include <RemoteXY.h>
+
+
+// RemoteXY GUI configuration  
+#pragma pack(push, 1)  
+uint8_t RemoteXY_CONF[] =   // 59 bytes
+  { 255,0,0,3,0,52,0,19,0,0,0,115,107,105,95,99,108,97,115,115,
+  105,102,105,99,97,116,105,111,110,0,31,1,106,200,1,1,2,0,65,3,
+  24,65,20,113,129,4,26,61,17,64,177,83,97,120,110,105,110,103,0 };
+  
+// this structure defines all the variables and events of your control interface 
+struct {
+
+    // output variables
+  uint8_t sax_r; // =0..255 LED Red brightness
+  uint8_t sax_g; // =0..255 LED Green brightness
+  uint8_t sax_b; // =0..255 LED Green brightness
+
+    // other variable
+  uint8_t connect_flag;  // =1 if wire connected, else =0
+
+} RemoteXY;   
+#pragma pack(pop)*/
+
+void PredictionResult(void)
+{
+    // Predict class
+    int prediction = classifier.predict(full_sample);
+
+    switch (prediction)
+    {
+        case 0:
+            Serial.println("Predicted class: Saxning (Herringbone technique) \n\n");
+            pred = "Saxning (Herringbone technique)";
+            break;
+        case 1:
+            Serial.println("Predicted class: Skate (Skating) \n\n");
+            pred = "Skate (Skating)";
+            break;
+        case 2:
+            Serial.println("Predicted class: Diagonalande (Diagonal stride) \n\n");
+            pred = "Diagonalande (Diagonal stride)";
+            break;
+        case 3:
+            Serial.println("Predicted class: Stakning (Double poling) \n\n");
+            pred = "Stakning (Double Poling)";
+            break;
+        case 4:
+            Serial.println("Predicted class: Stilla (Still) \n\n");
+            pred = "Stilla (Still)";
+            break;
+        default:
+            Serial.println("WRONG\n\n");
+            pred = "Unknown"; // Ensure pred always has a value
+            break;
+    }
+
+#if USE_INTERNET
+    sendPrediction_http();
+#endif // USE_INTERNET
+}
 
 void printPredictionResult(void)
 {
@@ -36,25 +104,26 @@ void printPredictionResult(void)
 
     switch(prediction){
       case 0:
-        Serial.println("Predicted class: Circles\n\n");
+        Serial.println("Predicted class: Saxning (Herringbone technique) \n\n");
         break;
       case 1:
-        Serial.println("Predicted class: Side to side\n\n");
+        Serial.println("Predicted class: Skate (Skating) \n\n");
         break;      
       case 2:
-        Serial.println("Predicted class: Up and down\n\n");
+        Serial.println("Predicted class: Diagonalande (Diagonal stride) \n\n");
         break;      
       case 3:
-        Serial.println("Predicted class: Diagonal\n\n");
+        Serial.println("Predicted class: Stakning (Double poling) \n\n");
         break;
       case 4:
-        Serial.println("Predicted class: Still\n\n");
+        Serial.println("Predicted class: Stilla (Still) \n\n");
         break;
       default:
         Serial.println("WRONG\n\n");
         break;
     }
 }
+
 
 void setup()
 {
@@ -85,7 +154,9 @@ void setup()
       initialized = true;
     }
 
+#if USE_INTERNET
     connectWiFi();
+#endif // USE_INTERNET
   }
 
   sampleRate.a = 19;  // 50Hz for Accelerometer (SRD = 19)
@@ -101,11 +172,17 @@ void setup()
   myICM.setFullScale(ICM_20948_Internal_Gyr, fullScale);
 
   SERIAL_PORT.println("Sampling frequency set to 50Hz for all sensors.");
+
+  //RemoteXY_Init(); 
+
+//  reset_colors();
 }
 
 
 void loop()
 {
+  //RemoteXY_Handler();
+
   static uint32_t lastTime = 0;  // Stores the last execution time
   const uint32_t interval = 20;  // 50Hz = 20ms per loop
 
@@ -187,58 +264,6 @@ void printFormatFloat(float val, uint8_t decimals)
     SERIAL_PORT.print(val, decimals);  // Print without leading zeros
 }
 
-void check_print()
-{
-    for (int i = 0; i < SIZE_BATCH; i++)
-    {
-        Serial.print("accx_save["); Serial.print(i); Serial.print("]: ");
-        Serial.print(accx_save[i], 6);
-        Serial.print(" | full_sample["); Serial.print(i); Serial.print("]: ");
-        Serial.println(full_sample[i], 6);
-    }
-
-    for (int i = 0; i < SIZE_BATCH; i++)
-    {
-        Serial.print("accy_save["); Serial.print(i); Serial.print("]: ");
-        Serial.print(accy_save[i], 6);
-        Serial.print(" | full_sample["); Serial.print(SIZE_BATCH + i); Serial.print("]: ");
-        Serial.println(full_sample[SIZE_BATCH + i], 6);
-    }
-
-    for (int i = 0; i < SIZE_BATCH; i++)
-    {
-        Serial.print("accz_save["); Serial.print(i); Serial.print("]: ");
-        Serial.print(accz_save[i], 6);
-        Serial.print(" | full_sample["); Serial.print(2 * SIZE_BATCH + i); Serial.print("]: ");
-        Serial.println(full_sample[2 * SIZE_BATCH + i], 6);
-    }
-
-    for (int i = 0; i < SIZE_BATCH; i++)
-    {
-        Serial.print("gyrx_save["); Serial.print(i); Serial.print("]: ");
-        Serial.print(gyrx_save[i], 6);
-        Serial.print(" | full_sample["); Serial.print(3 * SIZE_BATCH + i); Serial.print("]: ");
-        Serial.println(full_sample[3 * SIZE_BATCH + i], 6);
-    }
-
-    for (int i = 0; i < SIZE_BATCH; i++)
-    {
-        Serial.print("gyry_save["); Serial.print(i); Serial.print("]: ");
-        Serial.print(gyry_save[i], 6);
-        Serial.print(" | full_sample["); Serial.print(4 * SIZE_BATCH + i); Serial.print("]: ");
-        Serial.println(full_sample[4 * SIZE_BATCH + i], 6);
-    }
-
-    for (int i = 0; i < SIZE_BATCH; i++)
-    {
-        Serial.print("gyrz_save["); Serial.print(i); Serial.print("]: ");
-        Serial.print(gyrz_save[i], 6);
-        Serial.print(" | full_sample["); Serial.print(5 * SIZE_BATCH + i); Serial.print("]: ");
-        Serial.println(full_sample[5 * SIZE_BATCH + i], 6);
-    }
-    Serial.println(" ");
-}
-
 
 void printScaledAGMT(ICM_20948_I2C *sensor)
 {
@@ -265,8 +290,13 @@ void printScaledAGMT(ICM_20948_I2C *sensor)
       memcpy(&full_sample[5*SIZE_BATCH], gyrz_save, SIZE_BATCH * sizeof(float));
       i = 0;
 
-     sendHTTPDataFaster(full_sample, 6*SIZE_BATCH);
-    // printPredictionResult();
+#if USE_INTERNET
+    // sendHTTPDataFaster(full_sample, 6*SIZE_BATCH);
+#endif // USE_INTERNET
+
+     printPredictionResult();
+   //  sendPrediction_http();
+      PredictionResult();
      //Serial.println(millis() / 1000);
     }
 }
